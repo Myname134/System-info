@@ -7,6 +7,9 @@ BLUE="\e[34m"
 MAG="\e[35m"
 WH="\e[37m"
 RESET="\e[0m"
+BR="\e[91m"
+BB="\e[94m"
+BG="\e[92m"
 
 echo "=================="
 echo -e "${GREEN}System information${RESET}"
@@ -27,6 +30,12 @@ cpu_info() {
   echo -e "${MAG}CPU${RESET}"
   echo "Model  : $(grep 'model name' /proc/cpuinfo | head -n 1 | cut -d ':' -f2)"
   echo "Cores : $(grep -c ^processor /proc/cpuinfo)"
+}
+
+gpu_info() {
+  echo ""
+  echo -e "${BB}GPU${RESET}"
+  lspci | grep -E "VGA|3D"
 }
 
 memory_info() {
@@ -51,9 +60,28 @@ network_info() {
   fi
 }
 
-show_all=false
+temp_info() {
+  echo ""
+  echo -e "${BR}Temperature${RESET}"
+  if command -v sensors &>/dev/null; then
+    sensors | grep -E "Package id|Tctl|temp1"
+  else
+    echo "sensors command not found"
+  fi
+}
 
-while getopts "scmdna" opt; do
+logo() {
+  echo ""
+  echo "  ---  ---"
+  echo " ''' \/ '''  "
+  echo "    \__/  "
+  echo ""
+}
+
+show_all=false
+help=false
+
+while getopts "scmdnahgt" opt; do
   case $opt in
   s) system_info ;;
   c) cpu_info ;;
@@ -61,19 +89,41 @@ while getopts "scmdna" opt; do
   d) disk_info ;;
   n) network_info ;;
   a) show_all=true ;;
+  h) help=true ;;
+  g) gpu_info ;;
+  t) temp_info ;;
   *)
-    echo "Usage: $0 [-s] [-c] [-m] [-d] [-n] [-a]"
+    echo "Usage: $0 [-s] [-c] [-m] [-d] [-n] [-a] [-g] [-t] [-h]"
     exit 1
     ;;
   esac
 done
 
-if [$OPTIND -eq 1] || [ "$show_all" = true ]; then
+if [ $OPTIND -eq 1 ] || [ "$show_all" = true ]; then
+  logo
   system_info
   cpu_info
+  gpu_info
   memory_info
   disk_info
   network_info
+  temp_info
+fi
+
+if [ "$help" = true ]; then
+  echo ""
+  echo -e "${BG}Help Section${RESET}"
+  echo ""
+  echo "Options:"
+  echo "-s : check system information"
+  echo "-c : check cpu information"
+  echo "-m : check memory information"
+  echo "-d : check disk information"
+  echo "-n : check network information"
+  echo "-a : print all info"
+  echo "-h : show this help menu"
+  echo ""
+  exit 0
 fi
 
 echo ""
